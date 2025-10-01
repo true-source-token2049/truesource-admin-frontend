@@ -70,7 +70,7 @@ export default function HomePage() {
                   ✅ Wallet connected to Sepolia network
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Mint NFT</h2>
                     <p className="text-gray-600 mb-6">
@@ -99,6 +99,20 @@ export default function HomePage() {
                       View NFTs
                     </Link>
                   </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Transfer NFT</h2>
+                    <p className="text-gray-600 mb-6">
+                      Transfer your NFTs to another address. Simply enter the token ID 
+                      and recipient address to send your NFT.
+                    </p>
+                    <Link
+                      href="/nft-transfer"
+                      className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors w-full text-center"
+                    >
+                      Transfer NFT
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
@@ -108,6 +122,7 @@ export default function HomePage() {
                     <li>✅ Create custom metadata with attributes</li>
                     <li>✅ Mint NFTs directly to your connected wallet</li>
                     <li>✅ <strong>Bulk mint multiple copies of the same NFT</strong></li>
+                    <li>✅ <strong>Transfer NFTs to any Ethereum address</strong></li>
                     <li>✅ Anyone can mint as many NFTs as they want</li>
                     <li>✅ Built on Ethereum Sepolia testnet</li>
                     <li>✅ OpenZeppelin ERC721URIStorage standard</li>
