@@ -52,7 +52,6 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
 
   const handleLogout = () => {
     store.remove("token");
-    cookieStore.delete("topken");
     router.push("/login");
   };
 
@@ -228,7 +227,10 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
 
               {/* User Profile */}
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-                <div className="flex items-center gap-3">
+                <a
+                  href="/dashboard/profile"
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+                >
                   <div className="text-right hidden sm:block">
                     <p className="text-sm font-semibold text-gray-900">
                       {user?.name || "Admin User"}
@@ -240,7 +242,7 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
                   <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-semibold">
                     {user?.name?.charAt(0).toUpperCase() || "A"}
                   </div>
-                </div>
+                </a>
               </div>
             </div>
           </div>
