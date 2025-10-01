@@ -66,6 +66,10 @@ export const WalletProvider = ({ children }) => {
       setProvider(browserProvider);
       setSigner(currentSigner);
       setIsMetaMaskConnected(true);
+      
+      if (typeof window !== "undefined") {
+        localStorage.setItem("walletConnected", "true");
+      }
 
       const network = await browserProvider.getNetwork();
       setNetworkName(network.name);
@@ -94,6 +98,10 @@ export const WalletProvider = ({ children }) => {
     setIsCorrectNetwork(false);
     setNetworkName(null);
     setError(null);
+    
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("walletConnected");
+    }
   }, []);
 
   const handleAccountsChanged = useCallback(
@@ -124,6 +132,34 @@ export const WalletProvider = ({ children }) => {
   useEffect(() => {
     checkMetaMaskAvailability();
   }, [checkMetaMaskAvailability]);
+
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (typeof window === "undefined") return;
+      
+      const wasConnected = localStorage.getItem("walletConnected");
+      if (wasConnected === "true" && window.ethereum && !account) {
+        try {
+          const accounts = await window.ethereum.request({
+            method: "eth_accounts",
+          });
+          
+          if (accounts.length > 0) {
+            await connectWallet();
+          } else {
+            localStorage.removeItem("walletConnected");
+          }
+        } catch (err) {
+          console.error("Auto-reconnect failed:", err);
+          localStorage.removeItem("walletConnected");
+        }
+      }
+    };
+
+    if (isMetaMaskInstalled && !isLoading) {
+      autoConnect();
+    }
+  }, [isMetaMaskInstalled, account, connectWallet, isLoading]);
 
   const value = {
     account,

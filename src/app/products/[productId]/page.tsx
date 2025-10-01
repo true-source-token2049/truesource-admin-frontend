@@ -9,6 +9,15 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import CreateBatchModal from "@/components/modal/CreateBatchModal";
 import { useWallet } from "@/contexts/WalletContext";
+import { ethers } from "ethers";
+
+const NFT_ABI = [
+  "function mint(string memory metadataUri) public returns (uint256)",
+  "function mintBatch(string memory metadataUri, uint256 quantity) public returns (uint256)",
+  "event TokenMinted(uint256 indexed tokenId, address indexed to, string metadataUri)",
+];
+
+const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as any;
 
 interface ProductAsset {
   id: number;
@@ -49,16 +58,7 @@ export default function ProductDetailsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const {
-    account,
-    connectWallet,
-    disconnectWallet,
-    isMetaMaskInstalled,
-    isMetaMaskConnected,
-    isCorrectNetwork,
-    error,
-    isLoading,
-  } = useWallet();
+  const { account, signer } = useWallet();
 
   useEffect(() => {
     loadProduct();
@@ -69,7 +69,7 @@ export default function ProductDetailsPage() {
     if (!product?.product_assets?.length) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % product.product_assets.length);
-    }, 3000); // 3s autoplay
+    }, 3000);
     return () => clearInterval(interval);
   }, [product]);
 
@@ -77,7 +77,6 @@ export default function ProductDetailsPage() {
     try {
       const productData = await TrueSourceAPI.getProductById(productId);
 
-      console.log("productData is", productData);
       if (productData?.success) {
         setProduct(productData.result);
       }
@@ -91,7 +90,6 @@ export default function ProductDetailsPage() {
   const loadBatches = async () => {
     try {
       const batches = await TrueSourceAPI.getAllBatchesByProduct(productId);
-      console.log("product iss", batches);
       if (batches?.success) {
         setBatches(batches.result);
       }
@@ -103,8 +101,41 @@ export default function ProductDetailsPage() {
   };
 
   const createBatches = async (payload: any) => {
+    const units = payload.total_units;
+    let quantity = parseInt(units) || 1;
     const res = await TrueSourceAPI.createBatches(payload);
     if (res?.success) {
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, NFT_ABI, signer);
+      let tx;
+      let metadataUrl = res.result.metadataUrl;
+      if (quantity === 1) {
+        tx = await contract.mint(metadataUrl, {});
+      } else {
+        tx = await contract.mintBatch(metadataUrl, quantity, {});
+      }
+      const receipt = await tx.wait(1);
+
+      const mintedTokenIds = [];
+      for (const log of receipt.logs) {
+        try {
+          const parsed = contract.interface.parseLog(log);
+          if (parsed && parsed.name === "TokenMinted") {
+            mintedTokenIds.push(parsed.args.tokenId.toString());
+          }
+        } catch (e) {}
+      }
+      if (mintedTokenIds.length > 0) {
+        try {
+          await TrueSourceAPI.updateBatchNFT({
+            nft_token_ids: mintedTokenIds,
+            nft_transaction_hash: receipt.hash,
+            batch_id: res.result.batch_id,
+          });
+          console.log("Batch NFT info updated successfully");
+        } catch (error) {
+          console.error("Error updating batch NFT info:", error);
+        }
+      }
       loadBatches();
     }
   };

@@ -51,7 +51,6 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
   const router = useRouter();
 
   const handleLogout = () => {
-    // Add logout logic here
     store.remove("token");
     cookieStore.delete("topken");
     router.push("/login");

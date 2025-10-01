@@ -186,6 +186,25 @@ export default class TrueSourceAPI extends APISDK {
   };
 
   /**
+   * Update batch NFT information
+   */
+  static updateBatchNFT = async (
+    payload: {
+      nft_token_ids: string[];
+      nft_transaction_hash: string;
+      batch_id: number;
+    },
+    headers = {}
+  ) => {
+    return this.putWithAuth(
+      `${this.API_BASE_URL}/admin/batches/nft`,
+      payload,
+      headers,
+      true
+    );
+  };
+
+  /**
    * Update product
    */
   static updateProduct = async (
