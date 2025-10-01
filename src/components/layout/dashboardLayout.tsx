@@ -16,9 +16,11 @@ import {
   X,
   Bell,
   Search,
+  User as UserIcon,
 } from "lucide-react";
 import store from "store";
 import { useRouter } from "next/navigation";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface User {
   name: string;
@@ -35,6 +37,16 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ user, children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
+  const {
+    account,
+    connectWallet,
+    disconnectWallet,
+    isMetaMaskInstalled,
+    isMetaMaskConnected,
+    isCorrectNetwork,
+    error,
+    isLoading,
+  } = useWallet();
 
   const router = useRouter();
 
@@ -135,6 +147,38 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
 
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-200">
+          {/*Wallet*/}
+          <span className="font-medium">
+            {typeof account === "string"
+              ? `${(account as string).slice(0, 6)}...${(
+                  account as string
+                ).slice(-6)}`
+              : ""}
+          </span>
+          <div>
+            {isMetaMaskConnected && isCorrectNetwork ? (
+              <div className="flex my-4 items-center gap-3 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                <button
+                  onClick={disconnectWallet}
+                  className="font-medium cursor-pointer px-3 py-2.5 flex items-center gap-3"
+                >
+                  <LogOut className="w-5 h-5" />
+                  Disconnect
+                </button>
+              </div>
+            ) : (
+              <div className="flex my-4 items-center gap-3 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                <button
+                  onClick={connectWallet}
+                  disabled={!isMetaMaskInstalled || isLoading}
+                  className="font-medium cursor-pointer px-3 py-2.5 flex items-center gap-3"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  {isLoading ? "Connecting..." : "Connect Wallet"}
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
