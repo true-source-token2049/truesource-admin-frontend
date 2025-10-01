@@ -45,12 +45,34 @@ contract NFTClaimContract is Ownable, ReentrancyGuard {
     }
     
     /**
+     * @dev Create multiple claims at once (batch operation)
+     * @param claimCodes Array of claim codes
+     * @param tokenIds Array of token IDs (must match length of claimCodes)
+     */
+    function createClaimBatch(string[] memory claimCodes, uint256[] memory tokenIds) external nonReentrant {
+        require(claimCodes.length == tokenIds.length, "Arrays length mismatch");
+        require(claimCodes.length > 0, "Empty arrays");
+        require(claimCodes.length <= 100, "Max 100 claims per batch");
+        
+        for (uint256 i = 0; i < claimCodes.length; i++) {
+            _createClaim(claimCodes[i], tokenIds[i]);
+        }
+    }
+    
+    /**
      * @dev Create a new claim for an NFT
      * The retailer must have approved this contract for the specific tokenId
      * @param claimCode The unique claim code (will be hashed)
      * @param tokenId The NFT token ID to be claimed
      */
     function createClaim(string memory claimCode, uint256 tokenId) external nonReentrant {
+        _createClaim(claimCode, tokenId);
+    }
+    
+    /**
+     * @dev Internal function to create a claim
+     */
+    function _createClaim(string memory claimCode, uint256 tokenId) internal {
         require(bytes(claimCode).length > 0, "Claim code cannot be empty");
         require(nftContract.ownerOf(tokenId) == msg.sender, "You don't own this NFT");
         

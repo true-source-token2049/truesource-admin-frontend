@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { useWallet } from '../contexts/WalletContext';
 
@@ -10,12 +10,16 @@ const NFT_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
 const NFT_ABI = [
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function approve(address to, uint256 tokenId)",
+  "function setApprovalForAll(address operator, bool approved)",
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
   "function getApproved(uint256 tokenId) view returns (address)",
-  "function tokenURI(uint256 tokenId) view returns (string)"
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "function totalSupply() view returns (uint256)"
 ];
 
 const CLAIM_CONTRACT_ABI = [
   "function createClaim(string memory claimCode, uint256 tokenId) external",
+  "function createClaimBatch(string[] memory claimCodes, uint256[] memory tokenIds) external",
   "function cancelClaim(string memory claimCode) external",
   "function checkClaim(string memory claimCode) external view returns (bool isValid, uint256 tokenId, address retailer, bool isClaimed)",
   "function nftContract() view returns (address)"
@@ -23,6 +27,13 @@ const CLAIM_CONTRACT_ABI = [
 
 export default function RetailerClaims() {
   const { account, isCorrectNetwork } = useWallet();
+  
+  // Check approval for all on mount
+  useEffect(() => {
+    if (account && CLAIM_CONTRACT_ADDRESS) {
+      checkApprovalForAll();
+    }
+  }, [account]);
   
   const [tokenId, setTokenId] = useState('');
   const [claimCode, setClaimCode] = useState('');
@@ -32,12 +43,99 @@ export default function RetailerClaims() {
   const [success, setSuccess] = useState('');
   const [isApproved, setIsApproved] = useState(false);
   const [checkingApproval, setCheckingApproval] = useState(false);
+  
+  // Batch operations state
+  const [batchTokenIds, setBatchTokenIds] = useState('');
+  const [batchClaimCodes, setBatchClaimCodes] = useState('');
+  const [isApprovedForAll, setIsApprovedForAll] = useState(false);
+  const [codePrefix, setCodePrefix] = useState('PRODUCT');
+  const [findingTokens, setFindingTokens] = useState(false);
+  const [myTokenIds, setMyTokenIds] = useState([]);
 
   // Generate a random claim code
   const generateClaimCode = () => {
     const code = 'CLAIM-' + Math.random().toString(36).substring(2, 15).toUpperCase();
     setGeneratedCode(code);
     setClaimCode(code);
+  };
+
+  // Find all token IDs owned by the user
+  const findMyTokenIds = async () => {
+    setFindingTokens(true);
+    setError('');
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
+      
+      // Get total supply
+      const totalSupply = await nftContract.totalSupply ? await nftContract.totalSupply() : 100;
+      
+      const myTokens = [];
+      
+      setSuccess(`🔍 Scanning tokens 1 to ${totalSupply}...`);
+      
+      // Check each token (up to 100 for performance)
+      const maxToCheck = Math.min(parseInt(totalSupply.toString()), 100);
+      for (let i = 1; i <= maxToCheck; i++) {
+        try {
+          const owner = await nftContract.ownerOf(i);
+          if (owner.toLowerCase() === account.toLowerCase()) {
+            myTokens.push(i);
+          }
+        } catch (err) {
+          // Token doesn't exist or other error, skip
+        }
+      }
+      
+      setMyTokenIds(myTokens);
+      
+      if (myTokens.length === 0) {
+        setError('No NFTs found! Mint some NFTs first.');
+      } else {
+        setBatchTokenIds(myTokens.join(', '));
+        setSuccess(`✅ Found ${myTokens.length} NFTs you own: ${myTokens.join(', ')}`);
+      }
+    } catch (err) {
+      console.error('Error finding tokens:', err);
+      setError('Failed to find your tokens: ' + err.message);
+    } finally {
+      setFindingTokens(false);
+    }
+  };
+
+  // Auto-generate batch codes based on token IDs
+  const autoGenerateBatchCodes = () => {
+    if (!batchTokenIds) {
+      setError('Please enter token IDs first');
+      return;
+    }
+
+    try {
+      const tokenIds = batchTokenIds.split(',').map(id => id.trim()).filter(id => id);
+      
+      if (tokenIds.length === 0) {
+        setError('No valid token IDs found');
+        return;
+      }
+
+      if (tokenIds.length > 100) {
+        setError('Maximum 100 claims per batch');
+        return;
+      }
+
+      // Generate codes with format: PREFIX-TOKENID-RANDOM
+      const codes = tokenIds.map(tokenId => {
+        const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+        return `${codePrefix}-${tokenId}-${randomPart}`;
+      });
+
+      setBatchClaimCodes(codes.join('\n'));
+      setSuccess(`✅ Generated ${codes.length} unique claim codes!`);
+      setError('');
+    } catch (err) {
+      setError('Failed to generate codes: ' + err.message);
+    }
   };
 
   // Check if NFT is approved
@@ -193,6 +291,153 @@ Share this code with your customer. They can use it to claim the NFT.`);
     }
   };
 
+  // Check if approved for all
+  const checkApprovalForAll = async () => {
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
+      
+      const approved = await nftContract.isApprovedForAll(account, CLAIM_CONTRACT_ADDRESS);
+      setIsApprovedForAll(approved);
+      
+      if (approved) {
+        setSuccess('✅ All your NFTs are approved for claims!');
+      }
+      
+      return approved;
+    } catch (err) {
+      console.error('Error checking approval for all:', err);
+      return false;
+    }
+  };
+
+  // Approve ALL NFTs at once
+  const approveAllNFTs = async () => {
+    if (!CLAIM_CONTRACT_ADDRESS) {
+      setError('Claim contract not deployed. Please deploy it first.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+
+      const tx = await nftContract.setApprovalForAll(CLAIM_CONTRACT_ADDRESS, true);
+      setSuccess('⏳ Approving all NFTs... Please wait for confirmation.');
+      
+      await tx.wait();
+      
+      setSuccess('✅ All your NFTs are now approved for claims! You can create claim codes for any NFT you own.');
+      setIsApprovedForAll(true);
+    } catch (err) {
+      console.error('Error approving all NFTs:', err);
+      setError('Failed to approve all NFTs: ' + (err.reason || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create batch claims
+  const createBatchClaims = async () => {
+    if (!batchTokenIds || !batchClaimCodes) {
+      setError('Please enter both token IDs and claim codes');
+      return;
+    }
+
+    if (!CLAIM_CONTRACT_ADDRESS) {
+      setError('Claim contract not deployed. Please deploy it first.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Parse input
+      const tokenIds = batchTokenIds.split(',').map(id => id.trim()).filter(id => id);
+      const claimCodes = batchClaimCodes.split('\n').map(code => code.trim()).filter(code => code);
+
+      if (tokenIds.length !== claimCodes.length) {
+        throw new Error(`Mismatch: ${tokenIds.length} token IDs but ${claimCodes.length} claim codes`);
+      }
+
+      if (tokenIds.length === 0) {
+        throw new Error('No token IDs provided');
+      }
+
+      if (tokenIds.length > 100) {
+        throw new Error('Maximum 100 claims per batch');
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, provider);
+      const claimContract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, CLAIM_CONTRACT_ABI, signer);
+
+      // PRE-VALIDATE: Check ownership and approval for each NFT
+      setSuccess(`🔍 Validating ${tokenIds.length} NFTs...`);
+      
+      const validationErrors = [];
+      for (let i = 0; i < tokenIds.length; i++) {
+        const tokenId = tokenIds[i];
+        
+        try {
+          // Check if token exists and who owns it
+          const owner = await nftContract.ownerOf(tokenId);
+          
+          if (owner.toLowerCase() !== account.toLowerCase()) {
+            validationErrors.push(`Token ${tokenId}: You don't own this NFT (owned by ${owner.slice(0, 8)}...)`);
+            continue;
+          }
+
+          // Check if approved
+          const approvedAddress = await nftContract.getApproved(tokenId);
+          const isApprovedForAll = await nftContract.isApprovedForAll(account, CLAIM_CONTRACT_ADDRESS);
+          
+          if (approvedAddress.toLowerCase() !== CLAIM_CONTRACT_ADDRESS.toLowerCase() && !isApprovedForAll) {
+            validationErrors.push(`Token ${tokenId}: Not approved. Use "Approve All NFTs" first.`);
+          }
+        } catch (err) {
+          validationErrors.push(`Token ${tokenId}: ${err.message}`);
+        }
+      }
+
+      // If there are validation errors, show them
+      if (validationErrors.length > 0) {
+        throw new Error(`❌ Validation failed:\n\n${validationErrors.join('\n')}\n\n💡 Solution: Click "⚡ Approve All NFTs at Once" above first!`);
+      }
+
+      // All validated! Proceed with batch creation
+      setSuccess(`✅ Validation passed! Creating ${tokenIds.length} claims...`);
+
+      const tx = await claimContract.createClaimBatch(claimCodes, tokenIds);
+      setSuccess(`⏳ Transaction submitted! Creating ${tokenIds.length} claims... Please wait for confirmation.`);
+      
+      await tx.wait();
+      
+      setSuccess(`✅ Batch created successfully! 
+
+${tokenIds.length} claims created:
+${claimCodes.map((code, i) => `Token ${tokenIds[i]}: ${code}`).join('\n')}
+
+Share these codes with your customers.`);
+      
+      setBatchTokenIds('');
+      setBatchClaimCodes('');
+    } catch (err) {
+      console.error('Error creating batch claims:', err);
+      setError(err.message || 'Failed to create batch claims: ' + (err.reason || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!account) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-8">
@@ -335,6 +580,128 @@ Share this code with your customer. They can use it to claim the NFT.`);
               </button>
             </div>
           )}
+
+          {/* Batch Operations Section */}
+          <div className="border-t-2 border-gray-200 pt-8 mt-8">
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-6 rounded-lg border-2 border-yellow-300 mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                ⚡ Batch Operations
+                <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-1 rounded-full font-semibold">FASTER</span>
+              </h2>
+              <p className="text-gray-600 mb-6 text-sm">
+                Process multiple NFTs at once! Much more efficient for large quantities.
+              </p>
+
+              {/* Approve All NFTs */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Option 1: Approve ALL Your NFTs (Recommended)</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Sign once to approve ALL NFTs you own. Then create claims for any NFT without individual approvals.
+                </p>
+                <button
+                  onClick={approveAllNFTs}
+                  disabled={loading || isApprovedForAll}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all font-medium"
+                >
+                  {loading ? 'Approving...' : isApprovedForAll ? '✅ All NFTs Approved' : '⚡ Approve All NFTs at Once'}
+                </button>
+              </div>
+
+              {/* Batch Create Claims */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Option 2: Batch Create Claims</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Create up to 100 claim codes in a single transaction. Must be approved first.
+                </p>
+                
+                <div className="space-y-4">
+                  {/* Token IDs Input */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Token IDs (comma-separated):
+                      </label>
+                      <button
+                        onClick={findMyTokenIds}
+                        disabled={findingTokens}
+                        className="text-sm px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-300 transition-colors"
+                      >
+                        {findingTokens ? '🔍 Finding...' : '🔍 Find My NFTs'}
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="1, 2, 3, 4, 5 (or click 'Find My NFTs')"
+                      value={batchTokenIds}
+                      onChange={(e) => setBatchTokenIds(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {myTokenIds.length > 0 
+                        ? `✅ Found ${myTokenIds.length} NFTs you own` 
+                        : "Click 'Find My NFTs' to auto-fill, or enter manually (max 100)"
+                      }
+                    </p>
+                  </div>
+
+                  {/* Auto-Generate Section */}
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-3">🎲 Auto-Generate Claim Codes</h4>
+                    <div className="flex gap-3 items-end">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-blue-700 mb-2">
+                          Code Prefix:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="PRODUCT"
+                          value={codePrefix}
+                          onChange={(e) => setCodePrefix(e.target.value.toUpperCase())}
+                          className="w-full px-3 py-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        />
+                        <p className="text-xs text-blue-600 mt-1">
+                          Will generate: {codePrefix}-[TokenID]-[Random]
+                        </p>
+                      </div>
+                      <button
+                        onClick={autoGenerateBatchCodes}
+                        disabled={!batchTokenIds}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+                      >
+                        Generate Codes
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Claim Codes Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Claim Codes (one per line):
+                    </label>
+                    <textarea
+                      placeholder="Use 'Generate Codes' above or enter manually:&#10;PRODUCT-001&#10;PRODUCT-002&#10;PRODUCT-003"
+                      value={batchClaimCodes}
+                      onChange={(e) => setBatchClaimCodes(e.target.value)}
+                      rows={8}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-yellow-500 focus:outline-none font-mono text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ✨ Use auto-generate above, or enter manually (one per line). Must match token IDs count.
+                    </p>
+                  </div>
+
+                  {/* Create Button */}
+                  <button
+                    onClick={createBatchClaims}
+                    disabled={loading || !batchTokenIds || !batchClaimCodes}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-lg hover:from-green-700 hover:to-teal-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all font-medium"
+                  >
+                    {loading ? 'Creating Batch...' : '⚡ Create Batch Claims'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Cancel Claim Section */}
           <div className="border-t-2 border-gray-200 pt-8">
