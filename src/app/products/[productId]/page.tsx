@@ -8,6 +8,8 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import CreateBatchModal from "@/components/modal/CreateBatchModal";
+import AttestBatchModal, { AttestationStep } from "@/components/modal/AttestBatchModal";
+import AttestationRecordsModal from "@/components/modal/AttestationRecordsModal";
 import { useWallet } from "@/contexts/WalletContext";
 import { ethers } from "ethers";
 
@@ -15,6 +17,8 @@ const NFT_ABI = [
   "function mint(string memory metadataUri) public returns (uint256)",
   "function mintBatch(string memory metadataUri, uint256 quantity) public returns (uint256)",
   "event TokenMinted(uint256 indexed tokenId, address indexed to, string metadataUri)",
+  "function attestNFT(uint256 tokenId, uint256 value, string memory note) public",
+  "function ownerOf(uint256 tokenId) public view returns (address)"
 ];
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as any;
@@ -56,6 +60,9 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+  const [isAttestModalOpen, setIsAttestModalOpen] = useState(false);
+  const [isRecordsModalOpen, setIsRecordsModalOpen] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<any>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const { account, signer } = useWallet();
@@ -138,6 +145,144 @@ export default function ProductDetailsPage() {
       }
       loadBatches();
     }
+  };
+
+  const handleOpenAttestModal = async (batch: any) => {
+    const completedSteps = {
+      manufacturer: !!batch.batch_block?.manufacturer_transaction_hash,
+      distributor: !!batch.batch_block?.distributor_transaction_hash,
+      retailer: !!batch.batch_block?.retailer_transaction_hash,
+    };
+    
+    setSelectedBatch({ ...batch, completedSteps });
+    setIsAttestModalOpen(true);
+  };
+
+  const handleOpenRecordsModal = (batch: any) => {
+    setSelectedBatch(batch);
+    setIsRecordsModalOpen(true);
+  };
+
+  const handleAttestStep = async (
+    step: AttestationStep, 
+    stepIndex: number, 
+    onProgress?: (msg: string) => void
+  ) => {
+    if (!selectedBatch || !account || !signer) {
+      throw new Error("Missing required data");
+    }
+
+    // Extract and parse NFT token IDs from batch_range_logs
+    const rawTokenIds = selectedBatch.batch_range_logs?.map((log: any) => log.nft_token_id) || [];
+    
+    if (!rawTokenIds || rawTokenIds.length === 0) {
+      throw new Error(
+        `No NFT token IDs found for this batch. Batch ID: ${selectedBatch.id}`
+      );
+    }
+
+    // Parse token IDs - handle hex strings, decimal numbers, etc.
+    const tokenIds: string[] = [];
+    const invalidIds: string[] = [];
+    
+    rawTokenIds.forEach((id: string) => {
+      // Skip wallet addresses (40 hex chars = Ethereum address)
+      if (id.startsWith('0x') && id.length === 42) {
+        invalidIds.push(id);
+        return;
+      }
+      
+      // If it's already a valid number string, use it
+      if (/^\d+$/.test(id)) {
+        tokenIds.push(id);
+        return;
+      }
+      
+      // If it's a short hex string without 0x prefix, add it
+      if (/^[0-9a-fA-F]+$/.test(id) && id.length <= 16) {
+        tokenIds.push(`0x${id}`);
+        return;
+      }
+      
+      // If it's already prefixed with 0x and not an address, use it
+      if (id.startsWith('0x') && id.length < 42) {
+        tokenIds.push(id);
+        return;
+      }
+      
+      // Otherwise it's invalid
+      invalidIds.push(id);
+    });
+    
+    if (invalidIds.length > 0) {
+      console.warn('Skipped invalid token IDs (likely wallet addresses):', invalidIds);
+      if (onProgress) {
+        onProgress(`Warning: Skipped ${invalidIds.length} invalid token ID(s)`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    if (tokenIds.length === 0) {
+      throw new Error(
+        `No valid NFT token IDs found. Found ${invalidIds.length} invalid entries (wallet addresses). Please check your backend data.`
+      );
+    }
+
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, NFT_ABI, signer);
+    const accountAddress = String(account).toLowerCase();
+    
+    // Only use the first token ID
+    const tokenId = tokenIds[0];
+    
+    if (onProgress) {
+      onProgress(`Attesting NFT Token ID #${tokenId}...`);
+    }
+    
+    // Verify ownership before attesting (only on first step)
+    if (stepIndex === 0) {
+      try {
+        const owner = await contract.ownerOf(tokenId);
+        const ownerAddress = String(owner).toLowerCase();
+        if (ownerAddress !== accountAddress) {
+          throw new Error(`You do not own NFT #${tokenId}`);
+        }
+      } catch (error: any) {
+        throw new Error(`Failed to verify ownership of NFT #${tokenId}: ${error?.message || error}`);
+      }
+    }
+
+    // Attest with this step
+    try {
+      const tx = await contract.attestNFT(
+        tokenId, 
+        parseInt(step.role), // role value (1-3)
+        step.note
+      );
+      const receipt = await tx.wait(1);
+      console.log(`Attested token ${tokenId} with step ${stepIndex + 1}`);
+      
+      // Save to database after successful attestation
+      try {
+        await TrueSourceAPI.saveBatchAttestationBlock({
+          note: step.note,
+          type: step.roleLabel,
+          transaction_hash: receipt.hash,
+          batch_id: selectedBatch.id,
+        });
+        console.log(`Saved attestation block for ${step.roleLabel}`);
+      } catch (dbError: any) {
+        console.error(`Warning: Failed to save attestation to DB:`, dbError);
+        // Don't throw - blockchain attestation was successful
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to attest NFT #${tokenId} at step ${stepIndex + 1}: ${error?.message || error}`);
+    }
+  };
+
+  const handleSaveAttestations = async (steps: AttestationStep[]) => {
+    // All attestations already saved to DB during each step
+    // Just close modal and reload batches
+    loadBatches();
   };
 
   if (loading) {
@@ -275,6 +420,9 @@ export default function ProductDetailsPage() {
                 <th className="p-4 text-sm font-medium text-gray-600">
                   Created
                 </th>
+                <th className="p-4 text-sm font-medium text-gray-600">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -304,11 +452,55 @@ export default function ProductDetailsPage() {
                     <td className="p-4 text-gray-500">
                       {new Date(batch.createdAt).toLocaleDateString()}
                     </td>
+                    <td className="p-4">
+                      {batch.nft_minting_status === "completed" ? (
+                        (() => {
+                          // Check if all attestations are complete
+                          const allComplete = 
+                            batch.batch_block?.manufacturer_transaction_hash &&
+                            batch.batch_block?.distributor_transaction_hash &&
+                            batch.batch_block?.retailer_transaction_hash;
+                          
+                          if (allComplete) {
+                            return (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenRecordsModal(batch)}
+                                className="text-green-600 border-green-600 hover:bg-green-50"
+                              >
+                                <span className="mr-1">✓</span> View Records
+                              </Button>
+                            );
+                          }
+                          
+                          return account ? (
+                            <Button
+                              size="sm"
+                              onClick={() => handleOpenAttestModal(batch)}
+                              className="bg-emerald-600 hover:bg-emerald-700"
+                            >
+                              Attest
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              disabled
+                              className="opacity-50"
+                            >
+                              Connect Wallet
+                            </Button>
+                          );
+                        })()
+                      ) : (
+                        <span className="text-sm text-gray-400">N/A</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-gray-500">
+                  <td colSpan={8} className="p-6 text-center text-gray-500">
                     No batches found.
                   </td>
                 </tr>
@@ -326,6 +518,24 @@ export default function ProductDetailsPage() {
           createBatches(payload);
           // call your API here
         }}
+      />
+      <AttestBatchModal
+        open={isAttestModalOpen}
+        onClose={() => {
+          setIsAttestModalOpen(false);
+          setSelectedBatch(null);
+        }}
+        batch={selectedBatch}
+        onAttestStep={handleAttestStep}
+        onSubmit={handleSaveAttestations}
+      />
+      <AttestationRecordsModal
+        open={isRecordsModalOpen}
+        onClose={() => {
+          setIsRecordsModalOpen(false);
+          setSelectedBatch(null);
+        }}
+        batch={selectedBatch}
       />
     </DashboardLayout>
   );

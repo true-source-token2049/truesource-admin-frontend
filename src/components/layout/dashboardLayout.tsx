@@ -9,7 +9,6 @@ import {
   FileText,
   ShieldCheck,
   Users,
-  Settings,
   LogOut,
   ChevronDown,
   Menu,
@@ -17,6 +16,7 @@ import {
   Bell,
   Search,
   User as UserIcon,
+  TrendingUp,
 } from "lucide-react";
 import store from "store";
 import { useRouter } from "next/navigation";
@@ -130,11 +130,16 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
                   <FileText className="w-4 h-4" />
                   <span>Batches</span>
                 </a>
+                <a
+                  href="/dashboard/trail"
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Product Trail</span>
+                </a>
               </div>
             )}
           </div>
-
-          {/* Users */}
           <a
             href="/dashboard/users"
             className="flex items-center gap-3 px-3 py-2.5 text-gray-700 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors"

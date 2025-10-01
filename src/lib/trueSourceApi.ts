@@ -43,11 +43,7 @@ export interface ProductFilters {
 }
 
 export default class TrueSourceAPI extends APISDK {
-  // ==================== AUTH ENDPOINTS ====================
 
-  /**
-   * Login admin user
-   */
   static login = async (payload: LoginPayload, headers = {}) => {
     const result = await this.postWithApiKey(
       `${this.API_BASE_URL}/admin/login`,
@@ -58,7 +54,6 @@ export default class TrueSourceAPI extends APISDK {
 
     if (result.success && result.token) {
       store.set("token", result.token);
-      cookieStore.set("token", result.token);
       store.set("user", result.user);
     }
 
@@ -140,6 +135,17 @@ export default class TrueSourceAPI extends APISDK {
   };
 
   /**
+   * Get batch details including NFT token IDs
+   */
+  static getBatchById = async (batchId: number, headers = {}) => {
+    return this.getWithAuth(
+      `${this.API_BASE_URL}/admin/batch/${batchId}`,
+      headers,
+      true
+    );
+  };
+
+  /**
    * Get product by ID
    */
   static getProductById = async (id: string, headers = {}) => {
@@ -198,6 +204,26 @@ export default class TrueSourceAPI extends APISDK {
   ) => {
     return this.putWithAuth(
       `${this.API_BASE_URL}/admin/batches/nft`,
+      payload,
+      headers,
+      true
+    );
+  };
+
+  /**
+   * Save batch attestation block
+   */
+  static saveBatchAttestationBlock = async (
+    payload: {
+      note: string;
+      type: string;
+      transaction_hash: string;
+      batch_id: number;
+    },
+    headers = {}
+  ) => {
+    return this.postWithAuth(
+      `${this.API_BASE_URL}/admin/batches/block/add`,
       payload,
       headers,
       true
