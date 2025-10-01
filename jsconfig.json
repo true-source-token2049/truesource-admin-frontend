@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+    "types": []
+  },
+  "exclude": ["node_modules"]
+}
