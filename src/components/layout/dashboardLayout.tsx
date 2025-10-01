@@ -17,6 +17,8 @@ import {
   Search,
   User as UserIcon,
   TrendingUp,
+  Rocket,
+  Gift,
 } from "lucide-react";
 import store from "store";
 import { useRouter } from "next/navigation";
@@ -137,6 +139,13 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
                   <TrendingUp className="w-4 h-4" />
                   <span>Product Trail</span>
                 </a>
+                <a
+                  href="/dashboard/release"
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                >
+                  <Rocket className="w-4 h-4" />
+                  <span>Release NFTs</span>
+                </a>
               </div>
             )}
           </div>
@@ -147,6 +156,22 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
             <Users className="w-5 h-5" />
             <span className="font-medium">Users</span>
           </a>
+
+          {/* Claim Page Link */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <a
+              href="/claim"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2.5 text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+            >
+              <Gift className="w-5 h-5" />
+              <span className="font-medium">Claim Portal</span>
+            </a>
+            <p className="text-xs text-gray-500 mt-2 px-3">
+              Public page for users to claim NFTs
+            </p>
+          </div>
         </nav>
 
         {/* Logout Button */}
