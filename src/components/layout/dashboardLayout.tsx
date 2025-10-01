@@ -53,6 +53,7 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
   const handleLogout = () => {
     // Add logout logic here
     store.remove("token");
+    cookieStore.delete("topken");
     router.push("/login");
   };
 
@@ -125,7 +126,7 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
                   <span>Create Product</span>
                 </a>
                 <a
-                  href="/dashboard/products/batches"
+                  href="/product"
                   className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                 >
                   <FileText className="w-4 h-4" />

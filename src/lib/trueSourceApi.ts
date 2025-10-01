@@ -58,6 +58,7 @@ export default class TrueSourceAPI extends APISDK {
 
     if (result.success && result.token) {
       store.set("token", result.token);
+      cookieStore.set("token", result.token);
       store.set("user", result.user);
     }
 

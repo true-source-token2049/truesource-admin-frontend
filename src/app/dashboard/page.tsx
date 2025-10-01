@@ -168,7 +168,7 @@ export default function DashboardPage() {
                 Recent Products
               </h2>
               <a
-                href="/dashboard/products"
+                href="/product"
                 className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
               >
                 View All
@@ -237,14 +237,14 @@ export default function DashboardPage() {
           <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <a
-              href="/dashboard/products/create"
+              href="/product/create"
               className="bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors rounded-lg p-4 text-center"
             >
               <Package className="w-8 h-8 mx-auto mb-2" />
               <p className="font-medium">Add Product</p>
             </a>
             <a
-              href="/dashboard/products/batches"
+              href="/products/batches"
               className="bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors rounded-lg p-4 text-center"
             >
               <ShieldCheck className="w-8 h-8 mx-auto mb-2" />

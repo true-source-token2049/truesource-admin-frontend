@@ -53,6 +53,7 @@ export default function Loginform() {
 
       const data = response.result;
       localStorage.setItem("token", data.token?.access);
+      cookieStore.set("token", data.token?.access);
 
       // Redirect to dashboard
       window.location.href = "/dashboard";
