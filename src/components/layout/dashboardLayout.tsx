@@ -156,7 +156,7 @@ export function DashboardLayout({ user, children }: DashboardLayoutProps) {
               : ""}
           </span>
           <div>
-            {isMetaMaskConnected && isCorrectNetwork ? (
+            {account ? (
               <div className="flex my-4 items-center gap-3 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
                 <button
                   onClick={disconnectWallet}

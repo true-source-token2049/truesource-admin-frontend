@@ -6,6 +6,9 @@ import { DashboardLayout } from "@/components/layout/dashboardLayout";
 import TrueSourceAPI from "@/lib/trueSourceApi";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import CreateBatchModal from "@/components/modal/CreateBatchModal";
+import { useWallet } from "@/contexts/WalletContext";
 
 interface ProductAsset {
   id: number;
@@ -43,7 +46,19 @@ export default function ProductDetailsPage() {
   const [batches, setBatches] = useState<any>([]);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  const {
+    account,
+    connectWallet,
+    disconnectWallet,
+    isMetaMaskInstalled,
+    isMetaMaskConnected,
+    isCorrectNetwork,
+    error,
+    isLoading,
+  } = useWallet();
 
   useEffect(() => {
     loadProduct();
@@ -84,6 +99,13 @@ export default function ProductDetailsPage() {
       console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createBatches = async (payload: any) => {
+    const res = await TrueSourceAPI.createBatches(payload);
+    if (res?.success) {
+      loadBatches();
     }
   };
 
@@ -190,7 +212,24 @@ export default function ProductDetailsPage() {
         </div>
       </div>
       <div className="flex gap-5 w-full flex-col mt-10">
-        <h2 className="text-md font-bold">Batches</h2>
+        <div className="flex justify-between">
+          <h2 className="text-md font-bold">Batches</h2>
+          {account ? (
+            <Button
+              onClick={() => setIsOpen(true)}
+              className="px-4 py-2 rounded-md bg-emerald-600 text-white cursor-pointer"
+            >
+              Create Batches
+            </Button>
+          ) : (
+            <Button
+              disabled
+              className="px-4 py-2 rounded-md bg-emerald-600 text-white cursor-pointer"
+            >
+              Connect Wallet to Create Batches
+            </Button>
+          )}
+        </div>
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b">
@@ -247,6 +286,16 @@ export default function ProductDetailsPage() {
           </table>
         </div>
       </div>
+      <CreateBatchModal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        productId={product?.id}
+        onSubmit={(payload) => {
+          console.log("Batch Payload:", payload);
+          createBatches(payload);
+          // call your API here
+        }}
+      />
     </DashboardLayout>
   );
 }

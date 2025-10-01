@@ -175,6 +175,15 @@ export default class TrueSourceAPI extends APISDK {
     );
   };
 
+  static createBatches = async (payload: any, headers = {}) => {
+    return this.postWithAuth(
+      `${this.API_BASE_URL}/admin/batches`,
+      payload,
+      headers,
+      true
+    );
+  };
+
   /**
    * Update product
    */
