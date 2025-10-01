@@ -7,8 +7,20 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 contract EditableNFT is ERC721, ERC721URIStorage {
     uint256 private _tokenIds;
     
+    // Attestation structure
+    struct Attestation {
+        address attester;
+        uint256 value;
+        string note;
+        uint256 timestamp;
+    }
+    
+    // Mapping from token ID to array of attestations
+    mapping(uint256 => Attestation[]) private _attestations;
+    
     // Events
     event TokenMinted(uint256 indexed tokenId, address indexed to, string metadataUri);
+    event TokenAttested(uint256 indexed tokenId, address indexed attester, uint256 value, string note, uint256 timestamp);
     
     constructor() ERC721("EditableNFT", "ENFT") {}
     
@@ -60,6 +72,45 @@ contract EditableNFT is ERC721, ERC721URIStorage {
         _tokenIds = currentId;
         
         return firstTokenId;
+    }
+    
+    /**
+     * @dev Attest an NFT with a value and note
+     * @param tokenId The token ID to attest
+     * @param value The value of the attestation
+     * @param note The note/description of the attestation
+     */
+    function attestNFT(uint256 tokenId, uint256 value, string memory note) public {
+        require(ownerOf(tokenId) == msg.sender, "Only the owner can attest");
+        
+        Attestation memory newAttestation = Attestation({
+            attester: msg.sender,
+            value: value,
+            note: note,
+            timestamp: block.timestamp
+        });
+        
+        _attestations[tokenId].push(newAttestation);
+        
+        emit TokenAttested(tokenId, msg.sender, value, note, block.timestamp);
+    }
+    
+    /**
+     * @dev Get all attestations for a token
+     * @param tokenId The token ID
+     * @return An array of attestations
+     */
+    function getAttestations(uint256 tokenId) public view returns (Attestation[] memory) {
+        return _attestations[tokenId];
+    }
+    
+    /**
+     * @dev Get the total number of attestations for a token
+     * @param tokenId The token ID
+     * @return The number of attestations
+     */
+    function getAttestationCount(uint256 tokenId) public view returns (uint256) {
+        return _attestations[tokenId].length;
     }
     
     /**

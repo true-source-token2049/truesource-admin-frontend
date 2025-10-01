@@ -5,8 +5,10 @@ A Next.js app for creating, minting, and editing NFTs with customizable attribut
 ## Features
 
 - 🎨 Upload images to IPFS via Pinata
-- 🪙 Mint NFTs to connected wallets
+- 🪙 Mint NFTs to connected wallets (single or batch up to 100)
 - ✏️ Edit NFT attributes (anyone can update)
+- 🏆 Attest NFTs with value and notes (owners only)
+- 🔄 Transfer NFTs to other addresses
 - 🔗 Built on Ethereum Sepolia testnet
 - 🛡️ OpenZeppelin ERC721 standard
 
@@ -87,6 +89,26 @@ Visit http://localhost:3000
 4. Add/remove attributes
 5. Update attributes (anyone can do this!)
 
+### Attesting NFTs
+1. Go to "Attest NFT"
+2. Enter the token ID of an NFT you own
+3. Enter a numeric value (e.g., quality rating, price estimate, etc.)
+4. Add a descriptive note explaining the attestation
+5. Click "Attest NFT" and confirm in MetaMask
+6. View all attestations on the page - each attestation records:
+   - The attester's wallet address
+   - The value provided
+   - The note/description
+   - The timestamp of attestation
+
+**Note:** Only the owner of an NFT can attest it. Attestations are permanently stored on the blockchain.
+
+### Transferring NFTs
+1. Go to "Transfer NFT"
+2. Enter the token ID you want to transfer
+3. Enter the recipient's Ethereum address
+4. Click "Transfer NFT" and confirm in MetaMask
+
 ## Troubleshooting
 
 ### "Rate limit exceeded" or API errors
@@ -119,6 +141,8 @@ Visit http://localhost:3000
 ├── app/
 │   ├── api/              # API routes
 │   │   ├── mint-nft/     # Mint NFT endpoint
+│   │   ├── attest-nft/   # Attest NFT endpoint
+│   │   ├── transfer-nft/ # Transfer NFT endpoint
 │   │   ├── update-attributes/  # Update attributes endpoint
 │   │   └── nft-metadata/ # Fetch NFT data endpoint
 │   ├── contexts/         # React contexts
@@ -127,6 +151,8 @@ Visit http://localhost:3000
 │   │   └── pinata.js     # IPFS/Pinata integration
 │   ├── nft-mint/        # Minting page
 │   ├── nft-viewer/      # View/Edit page
+│   ├── nft-attest/      # Attestation page
+│   ├── nft-transfer/    # Transfer page
 │   └── page.js          # Home page
 ├── contracts/
 │   └── EditableNFT.sol  # Smart contract
@@ -138,10 +164,12 @@ Visit http://localhost:3000
 ## Smart Contract Details
 
 The `EditableNFT` contract allows:
-- **Anyone** can mint NFTs
+- **Anyone** can mint NFTs (single or batch up to 100)
 - **Anyone** can update attributes on existing NFTs
+- **NFT owners** can attest their NFTs with value and notes
 - Metadata stored on IPFS via Pinata
 - Attributes stored on-chain and updatable
+- Attestations stored permanently on-chain with attester address, value, note, and timestamp
 
 ## Security Notes
 

@@ -4,7 +4,6 @@ import { useWallet } from '../contexts/WalletContext';
 import { ethers } from 'ethers';
 import Link from 'next/link';
 
-// Simplified contract ABI
 const NFT_ABI = [
   "function mint(string memory metadataUri) public returns (uint256)",
   "function mintBatch(string memory metadataUri, uint256 quantity) public returns (uint256)",
@@ -84,7 +83,6 @@ export default function NFTMintPage() {
     setSuccess('');
 
     try {
-      // Step 1: Upload image and metadata to IPFS
       setSuccess('Uploading to IPFS...');
       const data = new FormData();
       data.append('name', formData.name);
@@ -105,32 +103,27 @@ export default function NFTMintPage() {
 
       const metadataUrl = result.metadataUrl;
 
-      // Step 2: Mint NFT(s) using MetaMask
       const quantity = parseInt(formData.quantity) || 1;
       const contract = new ethers.Contract(CONTRACT_ADDRESS, NFT_ABI, signer);
       
       setSuccess(`Minting ${quantity} NFT${quantity > 1 ? 's' : ''}... Please confirm transaction in MetaMask`);
       
       let tx;
-      // Estimate gas using MetaMask provider, not Alchemy
       const gasEstimate = quantity === 1 ? 150000 : 150000 * quantity + 50000;
       
       if (quantity === 1) {
-        // Single mint
         tx = await contract.mint(metadataUrl, {
           gasLimit: gasEstimate
         });
       } else {
-        // Batch mint - all in one transaction!
         tx = await contract.mintBatch(metadataUrl, quantity, {
           gasLimit: gasEstimate
         });
       }
       
       setSuccess('Transaction submitted! Waiting for confirmation...');
-      const receipt = await tx.wait(1); // Wait for 1 confirmation only
+      const receipt = await tx.wait(1);
       
-      // Get all token IDs from events
       const mintedTokenIds = [];
       for (const log of receipt.logs) {
         try {
@@ -139,13 +132,11 @@ export default function NFTMintPage() {
             mintedTokenIds.push(parsed.args.tokenId.toString());
           }
         } catch (e) {
-          // Continue if parsing fails
         }
       }
 
       setSuccess(`🎉 ${quantity} NFT${quantity > 1 ? 's' : ''} minted successfully! Token IDs: ${mintedTokenIds.join(', ')}`);
       
-      // Reset form
       setFormData({
         name: '',
         description: '',
@@ -225,7 +216,6 @@ export default function NFTMintPage() {
           )}
 
           <div className="space-y-6">
-            {/* Basic Information */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -277,7 +267,6 @@ export default function NFTMintPage() {
               </div>
             </div>
 
-            {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Image *
@@ -301,7 +290,6 @@ export default function NFTMintPage() {
               )}
             </div>
 
-            {/* Attributes */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Attributes</h2>
               <div className="space-y-4">
@@ -350,7 +338,6 @@ export default function NFTMintPage() {
               </div>
             </div>
 
-            {/* Mint Button */}
             <button
               onClick={handleMint}
               disabled={isMinting}

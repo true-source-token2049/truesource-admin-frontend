@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 
-// Simple ABI
 const SIMPLE_ABI = [
   "function mint(address to, string memory uri) public returns (uint256)",
   "function tokenURI(uint256 tokenId) public view returns (string memory)",
@@ -21,7 +20,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Private key not configured' }, { status: 500 });
     }
 
-    // Use Alchemy provider directly
     const provider = new ethers.AlchemyProvider("sepolia", process.env.NEXT_PUBLIC_ALCHEMY_API_KEY);
     const wallet = new ethers.Wallet(privateKey, provider);
 
@@ -31,14 +29,12 @@ export async function POST(request) {
       wallet
     );
 
-    // Mint with fixed gas to avoid estimation
     const tx = await contract.mint(recipientAddress, metadataUri, {
       gasLimit: 300000
     });
 
     const receipt = await tx.wait();
     
-    // Get the token ID from the Transfer event
     let tokenId = null;
     for (const log of receipt.logs) {
       try {

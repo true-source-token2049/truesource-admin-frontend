@@ -7,7 +7,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -41,7 +40,6 @@ export default function HomePage() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="text-center">
@@ -70,7 +68,7 @@ export default function HomePage() {
                   ✅ Wallet connected to Sepolia network
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
                   <div className="bg-white rounded-lg shadow-lg p-6">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Mint NFT</h2>
                     <p className="text-gray-600 mb-6">
@@ -113,6 +111,34 @@ export default function HomePage() {
                       Transfer NFT
                     </Link>
                   </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Attest NFT</h2>
+                    <p className="text-gray-600 mb-6">
+                      Attest your owned NFTs with a value and note. 
+                      Attestations are stored permanently on the blockchain along with your address.
+                    </p>
+                    <Link
+                      href="/nft-attest"
+                      className="inline-block bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors w-full text-center"
+                    >
+                      Attest NFT
+                    </Link>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">📜 NFT History</h2>
+                    <p className="text-gray-600 mb-6">
+                      Track the complete ownership history of any NFT. 
+                      View all previous owners and transfer events on the blockchain.
+                    </p>
+                    <Link
+                      href="/nft-history"
+                      className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors w-full text-center"
+                    >
+                      View History
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
@@ -123,6 +149,8 @@ export default function HomePage() {
                     <li>✅ Mint NFTs directly to your connected wallet</li>
                     <li>✅ <strong>Bulk mint multiple copies of the same NFT</strong></li>
                     <li>✅ <strong>Transfer NFTs to any Ethereum address</strong></li>
+                    <li>✅ <strong>Attest owned NFTs with value and notes</strong></li>
+                    <li>✅ <strong>Track complete ownership history via blockchain events</strong></li>
                     <li>✅ Anyone can mint as many NFTs as they want</li>
                     <li>✅ Built on Ethereum Sepolia testnet</li>
                     <li>✅ OpenZeppelin ERC721URIStorage standard</li>

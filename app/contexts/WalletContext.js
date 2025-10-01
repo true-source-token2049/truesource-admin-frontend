@@ -15,7 +15,7 @@ export const WalletProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const targetChainId = '0xaa36a7'; // Sepolia Chain ID
+  const targetChainId = '0xaa36a7';
   const targetNetworkName = 'sepolia';
   
   const checkMetaMaskAvailability = useCallback(() => {
@@ -38,7 +38,6 @@ export const WalletProvider = ({ children }) => {
     setError(null);
 
     try {
-      // Check if it's MetaMask specifically
       if (!window.ethereum.isMetaMask) {
         throw new Error("Please use MetaMask wallet");
       }

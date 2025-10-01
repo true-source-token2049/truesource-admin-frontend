@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 
-// ABI for updating attributes
 const EDITABLE_NFT_ABI = [
   "function updateAttributes(uint256 tokenId, string memory newAttributes) public",
   "function getAttributes(uint256 tokenId) public view returns (string memory)",
@@ -24,7 +23,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Private key not configured' }, { status: 500 });
     }
 
-    // Use Alchemy provider
     const provider = new ethers.AlchemyProvider("sepolia", process.env.NEXT_PUBLIC_ALCHEMY_API_KEY);
     const wallet = new ethers.Wallet(privateKey, provider);
 
@@ -34,7 +32,6 @@ export async function POST(request) {
       wallet
     );
 
-    // Check if token exists
     const exists = await contract.exists(tokenId);
     if (!exists) {
       return NextResponse.json({ 
@@ -42,7 +39,6 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // Update attributes
     console.log('Updating attributes...');
     const tx = await contract.updateAttributes(tokenId, JSON.stringify(attributes), {
       gasLimit: 200000

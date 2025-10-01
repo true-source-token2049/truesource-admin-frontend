@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { uploadFileToPinata, uploadMetadataToPinata } from '../../services/pinata';
 
-// Simplified ABI for EditableNFT contract
 const EDITABLE_NFT_ABI = [
   "function mint(string memory metadataUri) public returns (uint256)",
   "function tokenURI(uint256 tokenId) public view returns (string memory)",
@@ -18,7 +17,7 @@ export async function POST(request) {
     const name = formData.get('name');
     const description = formData.get('description');
     const imageFile = formData.get('image');
-    const attributes = formData.get('attributes'); // JSON string of attributes
+    const attributes = formData.get('attributes');
 
     if (!name || !description || !imageFile) {
       return NextResponse.json({ 
@@ -31,16 +30,13 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Private key not configured' }, { status: 500 });
     }
 
-    // Convert image file to buffer
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const imageFileName = `nft-image-${Date.now()}.${imageFile.name.split('.').pop()}`;
 
-    // Upload image to Pinata
     console.log('Uploading image to Pinata...');
     const imageHash = await uploadFileToPinata(imageBuffer, imageFileName);
     const imageUrl = `https://gateway.pinata.cloud/ipfs/${imageHash}`;
 
-    // Parse attributes if provided
     let parsedAttributes = [];
     if (attributes) {
       try {
@@ -50,7 +46,6 @@ export async function POST(request) {
       }
     }
 
-    // Create metadata object
     const metadata = {
       name: name,
       description: description,
@@ -58,12 +53,10 @@ export async function POST(request) {
       attributes: parsedAttributes
     };
 
-    // Upload metadata to Pinata
     console.log('Uploading metadata to Pinata...');
     const metadataHash = await uploadMetadataToPinata(metadata, `nft-metadata-${Date.now()}`);
     const metadataUrl = `https://gateway.pinata.cloud/ipfs/${metadataHash}`;
 
-    // Return the metadata URL - frontend will handle the actual minting via MetaMask
     return NextResponse.json({
       success: true,
       metadataUrl: metadataUrl,

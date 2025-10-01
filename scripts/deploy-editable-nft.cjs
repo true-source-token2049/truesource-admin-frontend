@@ -6,10 +6,9 @@ async function main() {
   
   const EditableNFT = await hre.ethers.getContractFactory("EditableNFT");
   
-  // Deploy with fixed gas to avoid estimation calls
   console.log("Deploying with fixed gas limit...");
   const editableNFT = await EditableNFT.deploy({
-    gasLimit: 3000000 // Fixed gas limit - no estimation needed
+    gasLimit: 3000000
   });
   
   console.log("Waiting for deployment transaction...");
@@ -27,8 +26,8 @@ async function main() {
   console.log("✓ Anyone can mint NFTs");
   console.log("✓ Batch mint up to 100 NFTs in one transaction");
   console.log("✓ Gas-optimized minting");
+  console.log("✓ NFT owners can attest with value and notes");
   
-  // Skip verification to save API calls
   console.log("\n⚠️  Skipping Etherscan verification to save API calls");
   console.log("You can verify manually later if needed.");
 }

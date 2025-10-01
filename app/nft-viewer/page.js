@@ -10,6 +10,7 @@ export default function NFTViewerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [attestations, setAttestations] = useState([]);
 
   const fetchNFTData = async () => {
     if (!tokenId) return;
@@ -18,7 +19,6 @@ export default function NFTViewerPage() {
     setError('');
     
     try {
-      // Fetch metadata from the contract
       const response = await fetch(`/api/nft-metadata?tokenId=${tokenId}`);
       const data = await response.json();
       
@@ -27,6 +27,17 @@ export default function NFTViewerPage() {
       }
       
       setNftData(data);
+
+      try {
+        const attestResponse = await fetch(`/api/attest-nft?tokenId=${tokenId}`);
+        const attestData = await attestResponse.json();
+        if (attestResponse.ok) {
+          setAttestations(attestData.attestations || []);
+        }
+      } catch (attestErr) {
+        console.error('Failed to fetch attestations:', attestErr);
+        setAttestations([]);
+      }
     } catch (err) {
       setError('Failed to fetch NFT data: ' + err.message);
     } finally {
@@ -81,7 +92,6 @@ export default function NFTViewerPage() {
             </p>
           </div>
 
-          {/* Token ID Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Enter Token ID
@@ -118,7 +128,6 @@ export default function NFTViewerPage() {
 
           {nftData && (
             <div className="max-w-2xl mx-auto">
-              {/* NFT Display */}
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">NFT Details</h2>
                 <div className="space-y-4">
@@ -154,6 +163,62 @@ export default function NFTViewerPage() {
                       </div>
                     </div>
                   )}
+                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-5 rounded-lg border-2 border-orange-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-lg font-bold text-gray-900 flex items-center">
+                        <span className="mr-2">🏆</span>
+                        Attestations
+                        {attestations.length > 0 && (
+                          <span className="ml-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                            {attestations.length}
+                          </span>
+                        )}
+                      </h4>
+                    </div>
+                    
+                    {attestations.length > 0 ? (
+                      <div className="space-y-3">
+                        {attestations.map((attestation, index) => (
+                          <div key={index} className="bg-white p-4 rounded-lg border-2 border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-3 pb-2 border-b border-gray-200">
+                              <div className="flex-1">
+                                <div className="flex items-center mb-2">
+                                  <span className="text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                                    VALUE: {attestation.value}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  <span className="font-medium text-gray-700">Attested by:</span>
+                                  <p className="font-mono text-gray-600 mt-1 break-all">{attestation.attester}</p>
+                                </div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <p className="text-xs text-gray-500 whitespace-nowrap">
+                                  📅 {attestation.date}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-2">
+                              <p className="text-xs font-semibold text-gray-700 mb-1">Attestation Note:</p>
+                              <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded italic">
+                                "{attestation.note}"
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 bg-white rounded-lg border-2 border-dashed border-orange-200">
+                        <p className="text-gray-500 text-sm">
+                          No attestations yet for this NFT
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Owners can attest this NFT with values and notes
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

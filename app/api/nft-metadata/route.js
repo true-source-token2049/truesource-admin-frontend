@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 
-// ABI for fetching NFT data
 const EDITABLE_NFT_ABI = [
   "function tokenURI(uint256 tokenId) public view returns (string memory)",
   "function ownerOf(uint256 tokenId) public view returns (address)",
@@ -18,7 +17,6 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Token ID is required' }, { status: 400 });
     }
 
-    // Use Alchemy with optimized settings
     const provider = new ethers.AlchemyProvider("sepolia", process.env.NEXT_PUBLIC_ALCHEMY_API_KEY);
 
     const contract = new ethers.Contract(
@@ -27,27 +25,25 @@ export async function GET(request) {
       provider
     );
 
-    // Check if token exists
     const exists = await contract.exists(tokenId);
     if (!exists) {
       return NextResponse.json({ error: 'Token does not exist' }, { status: 404 });
     }
 
-    // Get token URI and owner
     const [tokenURI, owner] = await Promise.all([
       contract.tokenURI(tokenId),
       contract.ownerOf(tokenId)
     ]);
 
-    // Fetch metadata from IPFS
     const metadataResponse = await fetch(tokenURI);
+    console.log(tokenURI)
+    console.log(metadataResponse)
     if (!metadataResponse.ok) {
       throw new Error('Failed to fetch metadata from IPFS');
     }
     
     const metadata = await metadataResponse.json();
 
-    // Get current attributes from contract
     let attributes = [];
     try {
       const attributesString = await contract.getAttributes(tokenId);
@@ -55,7 +51,6 @@ export async function GET(request) {
         attributes = JSON.parse(attributesString);
       }
     } catch (e) {
-      // If no attributes are set, use the ones from metadata
       attributes = metadata.attributes || [];
     }
 

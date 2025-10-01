@@ -4,7 +4,6 @@ import { useWallet } from '../contexts/WalletContext';
 import Link from 'next/link';
 import { ethers } from 'ethers';
 
-// Contract ABI for transfer
 const CONTRACT_ABI = [
   "function transferFrom(address from, address to, uint256 tokenId) public",
   "function ownerOf(uint256 tokenId) public view returns (address)",
@@ -32,13 +31,11 @@ export default function NFTTransferPage() {
       return;
     }
 
-    // Validate Ethereum address
     if (!ethers.isAddress(recipientAddress)) {
       setError('Invalid recipient address. Please enter a valid Ethereum address.');
       return;
     }
 
-    // Check if user is trying to send to themselves
     if (recipientAddress.toLowerCase() === account.toLowerCase()) {
       setError('Cannot transfer NFT to yourself');
       return;
@@ -54,14 +51,12 @@ export default function NFTTransferPage() {
     setSuccess('');
 
     try {
-      // Create contract instance with user's signer
       const contract = new ethers.Contract(
         CONTRACT_ADDRESS,
         CONTRACT_ABI,
         signer
       );
 
-      // Verify ownership before attempting transfer
       try {
         const owner = await contract.ownerOf(tokenId);
         if (owner.toLowerCase() !== account.toLowerCase()) {
@@ -74,12 +69,10 @@ export default function NFTTransferPage() {
         throw new Error('NFT does not exist or error checking ownership');
       }
 
-      // Execute transfer using safeTransferFrom (safer than transferFrom)
       const tx = await contract.safeTransferFrom(account, recipientAddress, tokenId);
       
       setSuccess('Transaction submitted! Waiting for confirmation...');
       
-      // Wait for transaction confirmation
       const receipt = await tx.wait();
 
       setSuccess(`NFT transferred successfully! Transaction: ${receipt.hash}`);
