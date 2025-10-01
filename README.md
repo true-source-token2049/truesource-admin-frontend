@@ -9,6 +9,8 @@ A Next.js app for creating, minting, and editing NFTs with customizable attribut
 - ✏️ Edit NFT attributes (anyone can update)
 - 🏆 Attest NFTs with value and notes (owners only)
 - 🔄 Transfer NFTs to other addresses
+- 🎁 **NEW: Approval-based claim system for retailers**
+- 🔐 **NEW: One-time claim codes for customers**
 - 🔗 Built on Ethereum Sepolia testnet
 - 🛡️ OpenZeppelin ERC721 standard
 
@@ -63,7 +65,20 @@ npx hardhat run scripts/deploy-editable-nft.cjs --network sepolia
 
 After deployment, copy the contract address to `.env.local`
 
-### 4. Start Development Server
+### 4. Deploy Claim Contract (Optional)
+
+If you want to use the approval-based claim system:
+
+```bash
+npx hardhat run scripts/deploy-claim-contract.cjs --network sepolia
+```
+
+After deployment, add to `.env.local`:
+```bash
+NEXT_PUBLIC_CLAIM_CONTRACT_ADDRESS=0x...
+```
+
+### 5. Start Development Server
 ```bash
 npm run dev
 ```
@@ -109,6 +124,34 @@ Visit http://localhost:3000
 3. Enter the recipient's Ethereum address
 4. Click "Transfer NFT" and confirm in MetaMask
 
+### Using the Claim System (NEW!)
+
+#### For Retailers:
+1. First, mint or own NFTs you want to make claimable
+2. Go to "Retailer Claims Management"
+3. Enter a Token ID and check if it needs approval
+4. Click "Approve NFT for Claims" (one-time action per NFT)
+5. Generate a random claim code or create your own
+6. Click "Create Claim Code" and confirm in MetaMask
+7. Share the claim code with your customer
+
+**Benefits:**
+- ✅ Sign once to approve the NFT
+- ✅ No need to sign for each customer claim
+- ✅ Customers can claim instantly without waiting for you
+- ✅ Secure: Each code works only once for one specific NFT
+
+#### For Customers:
+1. Go to "Claim Your NFT"
+2. Connect your wallet
+3. Enter the claim code provided by the retailer
+4. Click "Verify Code" to see NFT details
+5. Click "Claim NFT" and confirm the transaction
+6. NFT is instantly transferred to your wallet!
+
+**How It Works:**
+The retailer approves a Claim Contract to manage their NFT. When you claim, the contract automatically transfers the NFT from the retailer to you using this pre-approved authority. No manual action needed from the retailer!
+
 ## Troubleshooting
 
 ### "Rate limit exceeded" or API errors
@@ -153,16 +196,22 @@ Visit http://localhost:3000
 │   ├── nft-viewer/      # View/Edit page
 │   ├── nft-attest/      # Attestation page
 │   ├── nft-transfer/    # Transfer page
+│   ├── nft-history/     # NFT history page
+│   ├── retailer-claims/ # Retailer claims management (NEW)
+│   ├── customer-claim/  # Customer claim page (NEW)
 │   └── page.js          # Home page
 ├── contracts/
-│   └── EditableNFT.sol  # Smart contract
+│   ├── EditableNFT.sol      # Main NFT contract
+│   └── NFTClaimContract.sol # Claim contract (NEW)
 ├── scripts/
-│   └── deploy-editable-nft.cjs  # Deployment script
+│   ├── deploy-editable-nft.cjs  # Deploy NFT contract
+│   └── deploy-claim-contract.cjs # Deploy claim contract (NEW)
 └── .env.local           # Environment variables (not committed)
 ```
 
 ## Smart Contract Details
 
+### EditableNFT Contract
 The `EditableNFT` contract allows:
 - **Anyone** can mint NFTs (single or batch up to 100)
 - **Anyone** can update attributes on existing NFTs
@@ -170,6 +219,16 @@ The `EditableNFT` contract allows:
 - Metadata stored on IPFS via Pinata
 - Attributes stored on-chain and updatable
 - Attestations stored permanently on-chain with attester address, value, note, and timestamp
+- Supports ERC721 `approve()` function for delegated transfers
+
+### NFTClaimContract (NEW)
+The `NFTClaimContract` enables approval-based claims:
+- **Retailers** approve the contract to manage specific NFTs (one-time action)
+- **Retailers** create unique claim codes for each NFT
+- **Customers** use claim codes to instantly receive NFTs
+- **Security**: Each code is hashed, works only once, and for one specific NFT
+- **Efficiency**: No retailer signature needed for each customer claim
+- **Flexibility**: Retailers can cancel unused claims at any time
 
 ## Security Notes
 

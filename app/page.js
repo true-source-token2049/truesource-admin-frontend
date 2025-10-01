@@ -139,6 +139,40 @@ export default function HomePage() {
                       View History
                     </Link>
                   </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-yellow-300">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h2 className="text-2xl font-bold text-gray-900">🏪 Retailer Claims</h2>
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-semibold">NEW</span>
+                    </div>
+                    <p className="text-gray-600 mb-6">
+                      Approve NFTs and create claim codes for customers. 
+                      Enable customers to claim NFTs without needing your signature for each transfer!
+                    </p>
+                    <Link
+                      href="/retailer-claims"
+                      className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors w-full text-center"
+                    >
+                      Manage Claims
+                    </Link>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-300">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h2 className="text-2xl font-bold text-gray-900">🎁 Claim NFT</h2>
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-semibold">NEW</span>
+                    </div>
+                    <p className="text-gray-600 mb-6">
+                      Got a claim code from a retailer? 
+                      Enter it here to instantly receive your NFT without waiting for manual transfers!
+                    </p>
+                    <Link
+                      href="/customer-claim"
+                      className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors w-full text-center"
+                    >
+                      Claim Your NFT
+                    </Link>
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
@@ -151,6 +185,8 @@ export default function HomePage() {
                     <li>✅ <strong>Transfer NFTs to any Ethereum address</strong></li>
                     <li>✅ <strong>Attest owned NFTs with value and notes</strong></li>
                     <li>✅ <strong>Track complete ownership history via blockchain events</strong></li>
+                    <li>🎁 <strong className="text-yellow-600">NEW: Approval-based claim system for retailers</strong></li>
+                    <li>🎁 <strong className="text-green-600">NEW: One-time claim codes for customers</strong></li>
                     <li>✅ Anyone can mint as many NFTs as they want</li>
                     <li>✅ Built on Ethereum Sepolia testnet</li>
                     <li>✅ OpenZeppelin ERC721URIStorage standard</li>
